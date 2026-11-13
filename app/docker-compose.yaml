@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: agendamento
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
+      POSTGRES_DB: ${POSTGRES_DB:?defina no .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+
+volumes:
+  dados-postgres:
