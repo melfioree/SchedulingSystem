@@ -1,0 +1,37 @@
+<%- include('partials/topo', { titulo: 'Cadastrar-se' }) %>
+
+<div class="caixa-login card shadow-sm p-4">
+  <h1 class="h4 mb-3">Criar conta</h1>
+
+  <% if (locals.erro) { %>
+    <div class="alert alert-danger" role="alert"><%= erro %></div>
+  <% } %>
+
+  <form method="post" action="/cadastro">
+    <p>
+      <label class="form-label" for="nome">Nome completo</label><br>
+      <input class="form-control" type="text" id="nome" name="nome" value="<%= valores.nome || '' %>" required>
+    </p>
+    <p>
+      <label class="form-label" for="email">E-mail</label><br>
+      <input class="form-control" type="email" id="email" name="email" value="<%= valores.email || '' %>" required>
+    </p>
+    <p>
+      <label class="form-label" for="cpf">CPF</label><br>
+      <input class="form-control" type="text" id="cpf" name="cpf" value="<%= valores.cpf || '' %>" required>
+    </p>
+    <p>
+      <label class="form-label" for="senha">Senha (mínimo 8 caracteres)</label><br>
+      <input class="form-control" type="password" id="senha" name="senha" required>
+    </p>
+    <p>
+      <label class="form-label" for="confirmarSenha">Confirmar senha</label><br>
+      <input class="form-control" type="password" id="confirmarSenha" name="confirmarSenha" required>
+    </p>
+    <button class="btn btn-success w-100" type="submit">Cadastrar</button>
+  </form>
+
+  <p class="text-center mt-3 mb-0">Já tem conta? <a href="/login">Entrar</a></p>
+</div>
+
+<%- include('partials/rodape') %>

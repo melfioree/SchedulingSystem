@@ -1,5 +1,7 @@
 import express from 'express';
 import path from 'path';
+import { mostrarCadastro, cadastrar } from './controllers/authController';
+import 'dotenv/config';
 
 const app = express(); 
 
@@ -20,13 +22,11 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  console.log(req.body); 
   res.send('Login recebido');
 });
 
-app.get('/cadastro', (req, res) => {
-  res.send('Tela de cadastro');
-});
+app.get('/cadastro', mostrarCadastro);
+app.post('/cadastro', cadastrar);
 
 app.get('/painel', (req, res) => {
   res.send('Painel');
