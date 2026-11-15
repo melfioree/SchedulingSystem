@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../db';
+import { cpfValido } from '../models/regras';
 
 export function mostrarCadastro(req: Request, res: Response) {
   res.render('cadastro', { erro: null, valores: {} });
@@ -22,6 +23,10 @@ export async function cadastrar(req: Request, res: Response) {
 
   const emailLimpo = String(email).trim().toLowerCase();
   const cpfLimpo = String(cpf).replace(/\D/g, '');
+
+  if (!cpfValido(cpfLimpo)) {
+  return res.render('cadastro', { erro: 'CPF inválido.', valores });
+  }
 
   try {
     const existe = await prisma.usuario.findFirst({
