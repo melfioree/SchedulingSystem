@@ -2,3 +2,5 @@ POSTGRES_USER=portal
 POSTGRES_PASSWORD=senhaforte
 POSTGRES_DB=portal
 DATABASE_URL="postgresql://portal:senhaforte@localhost:5432/portal"
+
+SESSION_SECRET=valorAleatorio
