@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../db';
+import type { Perfil } from '../generated/prisma/enums';
 import { cpfValido, codigosIguais } from '../models/regras';
+import { telaInicial } from '../middlewares/auth';
 
 type Tela = { titulo: string; acao: string; pedirCodigo: boolean };
 
@@ -13,11 +15,11 @@ function codigoConvite(): string | null {
   return codigo.length >= 32 ? codigo : null;
 }
 
-export function mostrarCadastroCliente(req: Request, res: Response) {
+export function mostrarCadastroCliente(_req: Request, res: Response) {
   res.render('cadastro', { ...telaCliente, erro: null, valores: {} });
 }
 
-export function mostrarCadastroSocio(req: Request, res: Response) {
+export function mostrarCadastroSocio(_req: Request, res: Response) {
   if (!codigoConvite()) {
     return res.status(404).send('Página indisponível.');
   }
@@ -47,11 +49,11 @@ export async function cadastrarSocio(req: Request, res: Response) {
   return processarCadastro(req, res, 'SOCIO', telaSocio);
 }
 
-export async function processarCadastro(req: Request, res: Response,   perfil: 'CLIENTE' | 'SOCIO', tela: Tela,) {
+async function processarCadastro(req: Request, res: Response, perfil: Perfil, tela: Tela) {
   const { nome, email, cpf, senha, confirmarSenha } = req.body;
   const valores = { nome, email, cpf }; //guarda so o que eh seguro devolver ao form se der erro
   const falhar = (erro: string) => res.render('cadastro', { ...tela, erro, valores });
-  
+
   if (!nome || !email || !cpf || !senha) {
     return falhar('Preencha todos os campos.');
   }
@@ -93,7 +95,7 @@ export async function processarCadastro(req: Request, res: Response,   perfil: '
 
 const hashFalso = bcrypt.hashSync('senhaInexistente', 10);
 
-export function mostrarLogin(req: Request, res: Response) {
+export function mostrarLogin(_req: Request, res: Response) {
   res.render('login', { erro: null });
 }
 
@@ -116,7 +118,7 @@ export async function entrar(req: Request, res: Response) {
         return res.status(500).send('Erro interno ao entrar.');
       }
       req.session.usuario = { id: usuario.id, nome: usuario.nome, perfil: usuario.perfil };
-      req.session.save(() => res.redirect(usuario.perfil === 'SOCIO' ? '/reunioes' : '/agendar'));
+      req.session.save(() => res.redirect(telaInicial(usuario.perfil)));
     });
   } catch (erro) {
     console.error(erro);
@@ -129,4 +131,4 @@ export function sair(req: Request, res: Response) {
     res.clearCookie('connect.sid');
     res.redirect('/login');
   });
-}
+}

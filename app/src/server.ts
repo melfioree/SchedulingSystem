@@ -5,14 +5,18 @@ import path from 'path';
 import session from 'express-session';
 import rateLimit from 'express-rate-limit';
 import { mostrarCadastroCliente, cadastrarCliente, mostrarCadastroSocio, cadastrarSocio, mostrarLogin, entrar, sair } from './controllers/authController';
-import { exigirLogin, exigirPerfil } from './middlewares/auth';
-import { mostrarAgendar, pedirAgendamento } from './controllers/agendamentoController';
+import { exigirLogin, exigirPerfil, telaInicial } from './middlewares/auth';
+import { mostrarAgendar, listarHorarios, pedirAgendamento } from './controllers/agendamentoController';
+import { mostrarPerfil, salvarPerfil } from './controllers/perfilController';
 import { mostrarReunioes, cancelar, responder, registrar } from './controllers/reuniaoController';
+import { formatarData, formatarHora } from './models/regras';
 
 const app = express(); 
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
+app.locals.formatarData = formatarData;
+app.locals.formatarHora = formatarHora;
 
 app.use(express.urlencoded({ extended: false })); //entende os dados enviados por formularios e coloca em req.body
 app.use('/bootstrap', express.static(path.join(__dirname, '..', 'node_modules', 'bootstrap', 'dist')));
@@ -45,11 +49,6 @@ const limiteConvite = rateLimit({
   message: 'Muitas tentativas. Tente novamente em alguns minutos.',
 });
 
-// tela inicial de cada perfil, logo depois do login
-function telaInicial(perfil: 'CLIENTE' | 'SOCIO') {
-  return perfil === 'SOCIO' ? '/reunioes' : '/agendar';
-}
-
 app.get('/', (req, res) => {
   res.redirect(req.session.usuario ? telaInicial(req.session.usuario.perfil) : '/login');
 });
@@ -65,7 +64,11 @@ app.get('/cadastro-socio', mostrarCadastroSocio);
 app.post('/cadastro-socio', limiteConvite, cadastrarSocio);
 
 app.get('/agendar', exigirPerfil('CLIENTE'), mostrarAgendar);
+app.get('/agendar/horarios', exigirPerfil('CLIENTE'), listarHorarios);
 app.post('/agendar', exigirPerfil('CLIENTE'), pedirAgendamento);
+
+app.get('/perfil', exigirLogin, mostrarPerfil);
+app.post('/perfil', exigirLogin, salvarPerfil);
 
 app.get('/reunioes', exigirLogin, mostrarReunioes);
 app.post('/reunioes/registrar', exigirPerfil('SOCIO'), registrar);
@@ -74,4 +77,4 @@ app.post('/reunioes/:id/responder', exigirPerfil('SOCIO'), responder);
 
 app.listen(3000, () => {
   console.log('Rodando em http://localhost:3000');
-});
+});
