@@ -1,0 +1,57 @@
+<%- include('partials/topo', { titulo: 'Agendar reunião' }) %>
+
+<h1 class="h3 mb-3">Agendar reunião</h1>
+
+<% if (erro) { %>
+  <div class="alert alert-danger" role="alert"><%= erro %></div>
+<% } %>
+
+<% if (msg) { %>
+    <div class="alert alert-<%= msg.tipo %>" role="alert"><%= msg.texto %></div>
+<% } %>
+
+<form method="get" action="/agendar" class="card shadow-sm p-4 mb-4">
+  <div class="row g-3 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label" for="socio">Sócio</label>
+      <select class="form-select" id="socio" name="socio" required>
+        <option value="">Escolha um sócio</option>
+        <% socios.forEach(function (s) { %>
+          <option value="<%= s.id %>" <%= s.id === socioId ? 'selected' : '' %>><%= s.nome %></option>
+        <% }); %>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="dia">Dia</label>
+      <input class="form-control" type="date" id="dia" name="dia" value="<%= dia %>" required>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-success w-100" type="submit">Ver horários</button>
+    </div>
+  </div>
+</form>
+
+<% if (horarios !== null) { %>
+  <h2 class="h5">Horários livres</h2>
+  <% if (horarios.length === 0) { %>
+    <p>Não há horários livres neste dia.</p>
+  <% } else { %>
+    <form method="post" action="/agendar">
+        <input type="hidden" name="socio" value="<%= socioId %>">
+        <div class="mb-3">
+            <label class="form-label" for="assunto">Assunto da reunião</label>
+            <input class="form-control" type="text" id="assunto" name="assunto" maxlength="200" required>
+        </div>
+        <p class="mb-2">Escolha um horário para enviar o pedido:</p>
+        <div class="d-flex flex-wrap gap-2">
+            <% horarios.forEach(function (h) { %>
+                <button class="btn btn-success" type="submit" name="inicio" value="<%= h.toISOString() %>">
+                    <%= h.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) %>
+                </button>  
+            <% }); %>
+        </div>
+    </form>
+  <% } %>
+<% } %>
+
+<%- include('partials/rodape') %>

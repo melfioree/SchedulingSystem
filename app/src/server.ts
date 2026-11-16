@@ -1,10 +1,12 @@
 import 'dotenv/config';
+process.env.TZ = 'America/Sao_Paulo';
 import express from 'express';
 import path from 'path';
 import session from 'express-session';
 import rateLimit from 'express-rate-limit';
 import { mostrarCadastroCliente, cadastrarCliente, mostrarCadastroSocio, cadastrarSocio, mostrarLogin, entrar, sair } from './controllers/authController';
 import { exigirLogin, exigirPerfil } from './middlewares/auth';
+import { mostrarAgendar, pedirAgendamento } from './controllers/agendamentoController';
 
 const app = express(); 
 
@@ -60,9 +62,9 @@ app.get('/painel', exigirLogin, (req, res) => {
   res.render('painel');
 });
 
-app.get('/agendar', exigirPerfil('CLIENTE'), (req, res) => {
-  res.send('Tela de agendamento');
-});
+app.get('/agendar', exigirPerfil('CLIENTE'), mostrarAgendar);
+app.post('/agendar', exigirPerfil('CLIENTE'), pedirAgendamento);
+
 app.get('/socio/pedidos', exigirPerfil('SOCIO'), (req, res) => {
   res.send('Pedidos recebidos');
 });
