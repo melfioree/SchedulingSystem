@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from 'crypto';
+
 export function cpfValido(cpf: string): boolean {
   const numeros = cpf.replace(/\D/g, '');
 
@@ -17,4 +19,10 @@ export function cpfValido(cpf: string): boolean {
   const digito2 = calcularDigito(numeros.slice(0, 10), 11);
 
   return digito1 === Number(numeros[9]) && digito2 === Number(numeros[10]);
+}
+
+export function codigosIguais(informado: string, esperado: string): boolean {
+  const a = createHash('sha256').update(informado).digest();
+  const b = createHash('sha256').update(esperado).digest();
+  return timingSafeEqual(a, b);
 }

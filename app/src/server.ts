@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
-import { mostrarCadastro, cadastrar, mostrarLogin, entrar, sair } from './controllers/authController';
 import session from 'express-session';
+import rateLimit from 'express-rate-limit';
+import { mostrarCadastroCliente, cadastrarCliente, mostrarCadastroSocio, cadastrarSocio, mostrarLogin, entrar, sair } from './controllers/authController';
 import { exigirLogin, exigirPerfil } from './middlewares/auth';
 
 const app = express(); 
@@ -15,12 +16,14 @@ app.use('/bootstrap', express.static(path.join(__dirname, '..', 'node_modules', 
 app.use('/fontes', express.static(path.join(__dirname, '..', 'node_modules', '@fontsource', 'poppins')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-if (!process.env.SESSION_SECRET) {
-  throw new Error('Defina SESSION_SECRET no .env');
+const segredo = process.env.SESSION_SECRET;
+
+if (!segredo || segredo.length < 32) {
+  throw new Error('SESSION_SECRET ausente ou curto demais. Gere um valor aleatório (veja o .env.example).');
 }
 
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: segredo,
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 2 },
@@ -31,6 +34,14 @@ app.use((req, res, next) => {
   next();
 });
 
+const limiteConvite = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Muitas tentativas. Tente novamente em alguns minutos.',
+});
+
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
@@ -39,8 +50,11 @@ app.get('/login', mostrarLogin);
 app.post('/login', entrar);
 app.post('/sair', sair);
 
-app.get('/cadastro', mostrarCadastro);
-app.post('/cadastro', cadastrar);
+app.get('/cadastro', mostrarCadastroCliente);
+app.post('/cadastro', cadastrarCliente);
+
+app.get('/cadastro-socio', mostrarCadastroSocio);
+app.post('/cadastro-socio', limiteConvite, cadastrarSocio);
 
 app.get('/painel', exigirLogin, (req, res) => {
   res.render('painel');

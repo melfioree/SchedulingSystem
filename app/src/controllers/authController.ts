@@ -1,31 +1,72 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../db';
-import { cpfValido } from '../models/regras';
+import { cpfValido, codigosIguais } from '../models/regras';
 
-export function mostrarCadastro(req: Request, res: Response) {
-  res.render('cadastro', { erro: null, valores: {} });
+type Tela = { titulo: string; acao: string; pedirCodigo: boolean };
+
+const telaCliente: Tela = { titulo: 'Criar conta', acao: '/cadastro', pedirCodigo: false };
+const telaSocio: Tela = { titulo: 'Cadastro de sócio', acao: '/cadastro-socio', pedirCodigo: true };
+
+function codigoConvite(): string | null {
+  const codigo = process.env.CODIGO_CONVITE_SOCIO ?? '';
+  return codigo.length >= 32 ? codigo : null;
 }
 
-export async function cadastrar(req: Request, res: Response) {
+export function mostrarCadastroCliente(req: Request, res: Response) {
+  res.render('cadastro', { ...telaCliente, erro: null, valores: {} });
+}
+
+export function mostrarCadastroSocio(req: Request, res: Response) {
+  if (!codigoConvite()) {
+    return res.status(404).send('Página indisponível.');
+  }
+  res.render('cadastro', { ...telaSocio, erro: null, valores: {} });
+}
+
+export async function cadastrarCliente(req: Request, res: Response) {
+  return processarCadastro(req, res, 'CLIENTE', telaCliente);
+}
+
+export async function cadastrarSocio(req: Request, res: Response) {
+  const esperado = codigoConvite();
+  if (!esperado) {
+    return res.status(404).send('Página indisponível.');
+  }
+
+  const informado = String(req.body.codigo || '');
+  if (!codigosIguais(informado, esperado)) {
+    const { nome, email, cpf } = req.body;
+    return res.render('cadastro', {
+      ...telaSocio,
+      erro: 'Código de convite inválido.',
+      valores: { nome, email, cpf },
+    });
+  }
+
+  return processarCadastro(req, res, 'SOCIO', telaSocio);
+}
+
+export async function processarCadastro(req: Request, res: Response,   perfil: 'CLIENTE' | 'SOCIO', tela: Tela,) {
   const { nome, email, cpf, senha, confirmarSenha } = req.body;
   const valores = { nome, email, cpf }; //guarda so o que eh seguro devolver ao form se der erro
-
+  const falhar = (erro: string) => res.render('cadastro', { ...tela, erro, valores });
+  
   if (!nome || !email || !cpf || !senha) {
-    return res.render('cadastro', { erro: 'Preencha todos os campos.', valores });
+    return falhar('Preencha todos os campos.');
   }
   if (senha.length < 8) {
-    return res.render('cadastro', { erro: 'A senha precisa ter pelo menos 8 caracteres.', valores });
+    return falhar('A senha precisa ter pelo menos 8 caracteres.');
   }
   if (senha !== confirmarSenha) {
-    return res.render('cadastro', { erro: 'As senhas não conferem.', valores });
+    return falhar('As senhas não conferem.');
   }
 
   const emailLimpo = String(email).trim().toLowerCase();
   const cpfLimpo = String(cpf).replace(/\D/g, '');
 
   if (!cpfValido(cpfLimpo)) {
-  return res.render('cadastro', { erro: 'CPF inválido.', valores });
+    return falhar('CPF inválido.');
   }
 
   try {
@@ -33,17 +74,17 @@ export async function cadastrar(req: Request, res: Response) {
       where: { OR: [{ email: emailLimpo }, { cpf: cpfLimpo }] },
     });
     if (existe) {
-      return res.render('cadastro', { erro: 'E-mail ou CPF já cadastrado.', valores });
+      return falhar('E-mail ou CPF já cadastrado.');
     }
 
     const senhaHash = await bcrypt.hash(senha, 10);
     await prisma.usuario.create({
-      data: { nome: String(nome).trim(), email: emailLimpo, cpf: cpfLimpo, senhaHash },
+      data: { nome: String(nome).trim(), email: emailLimpo, cpf: cpfLimpo, senhaHash, perfil },
     });
     res.redirect('/login');
   } catch (erro: any) {
     if (erro.code === 'P2002') {
-      return res.render('cadastro', { erro: 'E-mail ou CPF já cadastrado.', valores });
+      return falhar('E-mail ou CPF já cadastrado.');
     }
     console.error(erro);
     res.status(500).send('Erro interno ao cadastrar.');

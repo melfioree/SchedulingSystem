@@ -1,13 +1,19 @@
-<%- include('partials/topo', { titulo: 'Cadastrar-se' }) %>
+<%- include('partials/topo', { titulo: titulo }) %>
 
 <div class="caixa-login card shadow-sm p-4">
-  <h1 class="h4 mb-3">Criar conta</h1>
+  <h1 class="h4 mb-3"><%= titulo %></h1>
 
   <% if (locals.erro) { %>
     <div class="alert alert-danger" role="alert"><%= erro %></div>
   <% } %>
 
-  <form method="post" action="/cadastro">
+  <form method="post" action="<%= acao%>"">
+    <%if (pedirCodigo) {%>
+      <p>
+        <label class="form-label" for="codigo">Código de convite</label><br>
+        <input class="form-control" type="password" id="codigo" name="codigo" required>
+      </p>
+    <% } %>
     <p>
       <label class="form-label" for="nome">Nome completo</label><br>
       <input class="form-control" type="text" id="nome" name="nome" value="<%= valores.nome || '' %>" required>
