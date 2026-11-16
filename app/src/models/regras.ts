@@ -75,3 +75,13 @@ export function adicionarDiasUteis(data: Date, quantidade: number): Date {
 export function pedidoExpirou(criadoEm: Date, agora: Date = new Date()): boolean {
   return agora >= adicionarDiasUteis(criadoEm, 2);
 }
+
+export const DURACOES_MIN = [30, 60, 90, 120];
+
+export function duracaoValida(minutos: number): boolean {
+  return DURACOES_MIN.includes(minutos);
+}
+
+export function fimDoExpediente(dia: Date): Date {
+  return new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), HORA_FECHAMENTO);
+}
