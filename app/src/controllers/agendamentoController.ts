@@ -84,4 +84,4 @@ export async function pedirAgendamento(req: Request, res: Response) {
     console.error(erro);
     res.status(500).send('Erro interno ao registrar o pedido.');
   }
-}
+}

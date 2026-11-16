@@ -20,10 +20,18 @@
     botao.querySelector('.olho-cortado').classList.toggle('d-none', !visivel);
   });
 
+  document.querySelectorAll('main > .alert, .caixa-login > .alert').forEach(function (aviso) {
+    var espera = aviso.classList.contains('alert-danger') ? 8000 : 5000;
+    setTimeout(function () {
+      aviso.classList.add('saindo');
+      setTimeout(function () { aviso.remove(); }, 400);
+    }, espera);
+  });
+
   document.addEventListener('hidden.bs.modal', function (evento) {
     evento.target.querySelectorAll('.mostrar-senha[aria-pressed="true"]').forEach(function (botao) { botao.click(); });
   });
 </script>
 </body>
 </html>
- 
+ 
