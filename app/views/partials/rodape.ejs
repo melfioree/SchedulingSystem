@@ -7,6 +7,23 @@
 </footer>
  
 <script src="/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.addEventListener('click', function (evento) {
+    var botao = evento.target.closest('.mostrar-senha');
+    if (!botao) return;
+    var campo = document.getElementById(botao.dataset.alvo);
+    var visivel = campo.type === 'password';
+    campo.type = visivel ? 'text' : 'password';
+    botao.setAttribute('aria-pressed', visivel);
+    botao.setAttribute('aria-label', visivel ? 'Ocultar senha' : 'Mostrar senha');
+    botao.querySelector('.olho').classList.toggle('d-none', visivel);
+    botao.querySelector('.olho-cortado').classList.toggle('d-none', !visivel);
+  });
+
+  document.addEventListener('hidden.bs.modal', function (evento) {
+    evento.target.querySelectorAll('.mostrar-senha[aria-pressed="true"]').forEach(function (botao) { botao.click(); });
+  });
+</script>
 </body>
 </html>
  

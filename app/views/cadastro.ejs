@@ -7,33 +7,33 @@
     <div class="alert alert-danger" role="alert"><%= erro %></div>
   <% } %>
 
-  <form method="post" action="<%= acao%>"">
+  <form method="post" action="<%= acao %>">
     <%if (pedirCodigo) {%>
-      <p>
-        <label class="form-label" for="codigo">Código de convite</label><br>
-        <input class="form-control" type="password" id="codigo" name="codigo" required>
-      </p>
+      <div class="mb-3">
+        <label class="form-label d-block" for="codigo">Código de convite</label>
+        <%- include('partials/campoSenha', { id: 'codigo', nome: 'codigo' }) %>
+      </div>
     <% } %>
-    <p>
-      <label class="form-label" for="nome">Nome completo</label><br>
+    <div class="mb-3">
+      <label class="form-label" for="nome">Nome completo</label>
       <input class="form-control" type="text" id="nome" name="nome" value="<%= valores.nome || '' %>" required>
-    </p>
-    <p>
-      <label class="form-label" for="email">E-mail</label><br>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="email">E-mail</label>
       <input class="form-control" type="email" id="email" name="email" value="<%= valores.email || '' %>" required>
-    </p>
-    <p>
-      <label class="form-label" for="cpf">CPF</label><br>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="cpf">CPF</label>
       <input class="form-control" type="text" id="cpf" name="cpf" value="<%= valores.cpf || '' %>" required>
-    </p>
-    <p>
-      <label class="form-label" for="senha">Senha (mínimo 8 caracteres)</label><br>
-      <input class="form-control" type="password" id="senha" name="senha" required>
-    </p>
-    <p>
-      <label class="form-label" for="confirmarSenha">Confirmar senha</label><br>
-      <input class="form-control" type="password" id="confirmarSenha" name="confirmarSenha" required>
-    </p>
+    </div>
+    <div class="mb-3">
+      <label class="form-label d-block" for="senha">Senha (mínimo 8 caracteres)</label>
+      <%- include('partials/campoSenha', { id: 'senha', nome: 'senha', autocomplete: 'new-password' }) %>
+    </div>
+    <div class="mb-3">
+      <label class="form-label d-block" for="confirmarSenha">Confirmar senha</label>
+      <%- include('partials/campoSenha', { id: 'confirmarSenha', nome: 'confirmarSenha', autocomplete: 'new-password' }) %>
+    </div>
     <button class="btn btn-success w-100" type="submit">Cadastrar</button>
   </form>
 
