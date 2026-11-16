@@ -1,9 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { mostrarCadastro, cadastrar, mostrarLogin, entrar, sair } from './controllers/authController';
-import 'dotenv/config';
 import session from 'express-session';
-
+import { exigirLogin, exigirPerfil } from './middlewares/auth';
 
 const app = express(); 
 
@@ -26,8 +26,13 @@ app.use(session({
   cookie: { httpOnly: true, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 2 },
 }));
 
+app.use((req, res, next) => {
+  res.locals.usuario = req.session.usuario ?? null;
+  next();
+});
+
 app.get('/', (req, res) => {
-    res.redirect('/login');
+  res.redirect('/login');
 });
 
 app.get('/login', mostrarLogin);
@@ -37,13 +42,15 @@ app.post('/sair', sair);
 app.get('/cadastro', mostrarCadastro);
 app.post('/cadastro', cadastrar);
 
-app.get('/painel', (req, res) => {
-  if (!req.session.usuario) return res.redirect('/login');
-  res.send('Oi, ' + req.session.usuario.nome);
+app.get('/painel', exigirLogin, (req, res) => {
+  res.render('painel');
 });
 
-app.get('/agendar', (req, res) => {
+app.get('/agendar', exigirPerfil('CLIENTE'), (req, res) => {
   res.send('Tela de agendamento');
+});
+app.get('/socio/pedidos', exigirPerfil('SOCIO'), (req, res) => {
+  res.send('Pedidos recebidos');
 });
 
 app.listen(3000, () => {
