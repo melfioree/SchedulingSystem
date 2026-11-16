@@ -1,6 +1,6 @@
 <%- include('partials/topo', { titulo: 'Agendar reunião' }) %>
 
-<h1 class="h3 mb-3">Agendar reunião</h1>
+<%- include('partials/abasCliente', { ativa: 'agendar' }) %>
 
 <% if (erro) { %>
   <div class="alert alert-danger" role="alert"><%= erro %></div>

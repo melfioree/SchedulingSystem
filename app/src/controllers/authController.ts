@@ -116,7 +116,7 @@ export async function entrar(req: Request, res: Response) {
         return res.status(500).send('Erro interno ao entrar.');
       }
       req.session.usuario = { id: usuario.id, nome: usuario.nome, perfil: usuario.perfil };
-      req.session.save(() => res.redirect('/painel'));
+      req.session.save(() => res.redirect(usuario.perfil === 'SOCIO' ? '/reunioes' : '/agendar'));
     });
   } catch (erro) {
     console.error(erro);

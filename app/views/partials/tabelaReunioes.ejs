@@ -1,0 +1,54 @@
+<% const cores = { PENDENTE: 'warning', CONFIRMADO: 'success', RECUSADO: 'danger', CANCELADO: 'secondary', EXPIRADO: 'secondary' }; %>
+<% const nomes = { PENDENTE: 'Pendente', CONFIRMADO: 'Confirmado', RECUSADO: 'Recusado', CANCELADO: 'Cancelado', EXPIRADO: 'Expirado' }; %>
+<% const hora = { hour: '2-digit', minute: '2-digit' }; %>
+
+<% if (itens.length === 0) { %>
+  <p class="text-muted"><%= vazio %></p>
+<% } else { %>
+  <div class="table-responsive mb-4">
+    <table class="table table-hover align-middle bg-white shadow-sm mb-0">
+      <thead>
+        <tr>
+          <th>Data e horário</th>
+          <th><%= eSocio ? 'Cliente' : 'Sócio' %></th>
+          <th>Assunto</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% itens.forEach(function (r) { %>
+          <% const outro = eSocio ? r.cliente.nome : r.socio.nome; %>
+          <% const dataTexto = r.inicio.toLocaleDateString('pt-BR'); %>
+          <% const inicioTexto = r.inicio.toLocaleTimeString('pt-BR', hora); %>
+          <tr>
+            <td>
+              <%= dataTexto %><br>
+              <small class="text-muted">
+                <%= inicioTexto %>
+                <% if (r.status === 'CONFIRMADO' && r.duracaoMinutos) { %>
+                  às <%= new Date(r.inicio.getTime() + r.duracaoMinutos * 60000).toLocaleTimeString('pt-BR', hora) %>
+                <% } %>
+              </small>
+            </td>
+            <td class="text-break"><%= outro %></td>
+            <td class="text-break">
+              <%= r.assunto %><br>
+              <small class="text-muted"><%= r.tipo === 'PRESENCIAL' ? 'Presencial' : 'Online' %></small>
+            </td>
+            <td><span class="badge text-bg-<%= cores[r.statusExibido] %>"><%= nomes[r.statusExibido] %></span></td>
+            <td class="text-end">
+              <% if (r.podeCancelar) { %>
+                <button class="btn btn-sm btn-outline-danger cancelar" type="button"
+                        data-id="<%= r.id %>"
+                        data-resumo="<%= dataTexto %> às <%= inicioTexto %>, com <%= outro %>">
+                  Cancelar
+                </button>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+<% } %>

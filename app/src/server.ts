@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { mostrarCadastroCliente, cadastrarCliente, mostrarCadastroSocio, cadastrarSocio, mostrarLogin, entrar, sair } from './controllers/authController';
 import { exigirLogin, exigirPerfil } from './middlewares/auth';
 import { mostrarAgendar, pedirAgendamento } from './controllers/agendamentoController';
+import { mostrarReunioes, cancelar, responder, registrar } from './controllers/reuniaoController';
 
 const app = express(); 
 
@@ -44,8 +45,13 @@ const limiteConvite = rateLimit({
   message: 'Muitas tentativas. Tente novamente em alguns minutos.',
 });
 
+// tela inicial de cada perfil, logo depois do login
+function telaInicial(perfil: 'CLIENTE' | 'SOCIO') {
+  return perfil === 'SOCIO' ? '/reunioes' : '/agendar';
+}
+
 app.get('/', (req, res) => {
-  res.redirect('/login');
+  res.redirect(req.session.usuario ? telaInicial(req.session.usuario.perfil) : '/login');
 });
 
 app.get('/login', mostrarLogin);
@@ -58,16 +64,13 @@ app.post('/cadastro', cadastrarCliente);
 app.get('/cadastro-socio', mostrarCadastroSocio);
 app.post('/cadastro-socio', limiteConvite, cadastrarSocio);
 
-app.get('/painel', exigirLogin, (req, res) => {
-  res.render('painel');
-});
-
 app.get('/agendar', exigirPerfil('CLIENTE'), mostrarAgendar);
 app.post('/agendar', exigirPerfil('CLIENTE'), pedirAgendamento);
 
-app.get('/socio/pedidos', exigirPerfil('SOCIO'), (req, res) => {
-  res.send('Pedidos recebidos');
-});
+app.get('/reunioes', exigirLogin, mostrarReunioes);
+app.post('/reunioes/registrar', exigirPerfil('SOCIO'), registrar);
+app.post('/reunioes/:id/cancelar', exigirLogin, cancelar);
+app.post('/reunioes/:id/responder', exigirPerfil('SOCIO'), responder);
 
 app.listen(3000, () => {
   console.log('Rodando em http://localhost:3000');
