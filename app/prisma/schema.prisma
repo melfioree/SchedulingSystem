@@ -13,6 +13,11 @@ enum Perfil {
   SOCIO
 }
 
+enum TipoReuniao {
+  ONLINE
+  PRESENCIAL
+}
+
 enum StatusAgendamento {
   PENDENTE
   CONFIRMADO
@@ -41,6 +46,7 @@ model Agendamento {
   assunto        String
   status         StatusAgendamento @default(PENDENTE)
   criadoEm       DateTime          @default(now())
+  tipo TipoReuniao @default(ONLINE)
 
   clienteId Int
   cliente   Usuario @relation("DoCliente", fields: [clienteId], references: [id])

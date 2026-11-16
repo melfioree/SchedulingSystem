@@ -37,7 +37,7 @@ export async function horariosLivres(socioId: number, dia: Date, banco: Banco = 
   });
 }
 
-export async function pedirReuniao( clienteId: number, socioId: number, inicio: Date, assunto: string,): Promise<'ok' | 'conflito'> {
+export async function pedirReuniao( clienteId: number, socioId: number, inicio: Date, assunto: string, tipo: 'ONLINE' | 'PRESENCIAL',): Promise<'ok' | 'conflito'> {
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${socioId}::bigint)`;
 
@@ -49,7 +49,7 @@ export async function pedirReuniao( clienteId: number, socioId: number, inicio: 
     }
 
     await tx.agendamento.create({
-      data: { inicio, assunto, clienteId, socioId },
+      data: { inicio, assunto, tipo, clienteId, socioId },
     });
     return 'ok';
   });

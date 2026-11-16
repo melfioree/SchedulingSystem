@@ -36,21 +36,94 @@
   <% if (horarios.length === 0) { %>
     <p>Não há horários livres neste dia.</p>
   <% } else { %>
-    <form method="post" action="/agendar">
+    <% const socioEscolhido = socios.find(function (s) { return s.id === socioId; }); %>
+    <form method="post" action="/agendar" id="formPedido" data-socio="<%= socioEscolhido ? socioEscolhido.nome : '' %>">
         <input type="hidden" name="socio" value="<%= socioId %>">
+        <input type="hidden" name="inicio" id="inicio">
         <div class="mb-3">
-            <label class="form-label" for="assunto">Assunto da reunião</label>
+            <label class="form-label" for="assunto">Assunto</label>
             <input class="form-control" type="text" id="assunto" name="assunto" maxlength="200" required>
         </div>
-        <p class="mb-2">Escolha um horário para enviar o pedido:</p>
+        <div class="mb-3">
+            <label class="form-label" for="tipo">Tipo de reunião</label>   
+             <select class="form-select" id="tipo" name="tipo" required>
+                <option value="ONLINE">Online</option>
+                 <option value="PRESENCIAL">Presencial</option>
+             </select>
+        </div>
+        <p class="mb-2">Escolha um horário para a reunião:</p>
         <div class="d-flex flex-wrap gap-2">
             <% horarios.forEach(function (h) { %>
-                <button class="btn btn-success" type="submit" name="inicio" value="<%= h.toISOString() %>">
+                <button class="btn btn-success horario" type="button"
+                    data-inicio="<%= h.toISOString() %>"
+                    data-data="<%= h.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %>"
+                    data-hora="<%= h.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) %>">
                     <%= h.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) %>
                 </button>  
             <% }); %>
         </div>
     </form>
+
+    <div class="modal fade" id="modalConfirmar" tabindex="-1" aria-labelledby="tituloModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="tituloModal">Confirmar pedido de reunião</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Confira os dados antes de enviar:</p>
+                    <dl class="row mb-3">
+                        <dt class="col-sm-4">Sócio</dt>
+                        <dd class="col-sm-8" id="resSocio"></dd>
+                        <dt class="col-sm-4">Data</dt>
+                        <dd class="col-sm-8" id="resData"></dd>
+                        <dt class="col-sm-4">Horário</dt>
+                        <dd class="col-sm-8" id="resHora"></dd>
+                        <dt class="col-sm-4">Tipo</dt>
+                        <dd class="col-sm-8" id="resTipo"></dd>
+                        <dt class="col-sm-4">Assunto</dt>
+                        <dd class="col-sm-8" id="resAssunto"></dd>
+                    </dl>
+                    <p class="small text-muted mb-0">O pedido fica pendente até o sócio confirmar ou recusar, em até 2 dias úteis.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
+                    <button type="button" class="btn btn-success" id="confirmar">Confirmar pedido</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.getElementById('formPedido');
+            var modalEl = document.getElementById('modalConfirmar');
+            var assunto = document.getElementById('assunto');
+            var tipo = document.getElementById('tipo');
+            var modal = new bootstrap.Modal(modalEl);
+
+            form.querySelectorAll('.horario').forEach(function (botao) {
+                botao.addEventListener('click', function () {
+                    if (!form.reportValidity()) return;
+                    if (!assunto.value.trim()) { assunto.focus(); return; }
+
+                    document.getElementById('inicio').value = botao.dataset.inicio;
+                    document.getElementById('resSocio').textContent = form.dataset.socio;
+                    document.getElementById('resData').textContent = botao.dataset.data;
+                    document.getElementById('resHora').textContent = botao.dataset.hora;
+                    document.getElementById('resTipo').textContent = tipo.options[tipo.selectedIndex].text;
+                    document.getElementById('resAssunto').textContent = assunto.value.trim();
+                    modal.show();
+                });
+            });
+
+            document.getElementById('confirmar').addEventListener('click', function () {
+                this.disabled = true;
+                form.submit();
+            });
+        });
+    </script>
   <% } %>
 <% } %>
 

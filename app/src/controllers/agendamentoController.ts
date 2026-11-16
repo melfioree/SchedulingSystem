@@ -49,6 +49,7 @@ export async function pedirAgendamento(req: Request, res: Response) {
     const socioId = Number(req.body.socio) || 0;
     const inicio = new Date(String(req.body.inicio || ''));
     const assunto = String(req.body.assunto || '').trim();
+    const tipo = req.body.tipo === 'PRESENCIAL' ? 'PRESENCIAL' : 'ONLINE';   
 
     const socio = socioId
       ? await prisma.usuario.findFirst({ where: { id: socioId, perfil: 'SOCIO' } })
@@ -58,7 +59,7 @@ export async function pedirAgendamento(req: Request, res: Response) {
       return res.redirect('/agendar?msg=invalido');
     }
 
-    const resultado = await pedirReuniao(clienteId, socioId, inicio, assunto);
+    const resultado = await pedirReuniao(clienteId, socioId, inicio, assunto, tipo);
     const dia = inicio.toLocaleDateString('en-CA'); // formato AAAA-MM-DD
     res.redirect(`/agendar?socio=${socioId}&dia=${dia}&msg=${resultado}`);
   } catch (erro) {
