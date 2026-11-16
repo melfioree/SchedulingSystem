@@ -7,21 +7,19 @@ import {
   listarClientes,
 } from '../models/reuniaoService';
 import { registrarReuniao } from '../models/agendamentoService';
-import { pedidoExpirou, lerDia, horariosDoDia, DURACOES_MIN } from '../models/regras';
-
-type Mensagem = { tipo: 'success' | 'danger'; texto: string };
-
-const MENSAGENS: Record<string, Mensagem> = {
-  cancelada: { tipo: 'success', texto: 'Reunião cancelada. O horário foi liberado.' },
-  'nao-cancelada': { tipo: 'danger', texto: 'Não foi possível cancelar esta reunião.' },
-  confirmada: { tipo: 'success', texto: 'Pedido confirmado. O cliente verá a reunião como confirmada.' },
-  recusada: { tipo: 'success', texto: 'Pedido recusado. O horário foi liberado.' },
-  'pedido-indisponivel': { tipo: 'danger', texto: 'Esse pedido não está mais pendente.' },
-  duracao: { tipo: 'danger', texto: 'Duração inválida: o máximo é 2 horas e a reunião deve terminar até as 18h.' },
-  conflito: { tipo: 'danger', texto: 'Este horário não está mais disponível: a duração escolhida invade outra reunião.' },
-  registrada: { tipo: 'success', texto: 'Reunião registrada como confirmada.' },
-  'registro-invalido': { tipo: 'danger', texto: 'Dados inválidos. Confira cliente, dia útil, horário e duração.' },
-};
+import {
+  pedidoExpirou,
+  lerDia,
+  lerTipo,
+  horariosDoDia,
+  somarMinutos,
+  rotuloDuracao,
+  formatarTelefone,
+  formatarDiaISO,
+  DURACOES_MIN,
+  ASSUNTO_MAX,
+} from '../models/regras';
+import { mensagemDe } from '../mensagens';
 
 const ABAS = ['pendentes', 'agenda', 'registrar'];
 
@@ -36,6 +34,8 @@ export async function mostrarReunioes(req: Request, res: Response) {
       const ativa = r.status === 'PENDENTE' || r.status === 'CONFIRMADO';
       return {
         ...r,
+        telefoneCliente: formatarTelefone(r.cliente.telefone),
+        fim: r.status === 'CONFIRMADO' && r.duracaoMinutos ? somarMinutos(r.inicio, r.duracaoMinutos) : null,
         statusExibido: expirou ? 'EXPIRADO' : r.status,
         podeCancelar: ativa && !expirou && r.inicio > agora,
       };
@@ -46,7 +46,6 @@ export async function mostrarReunioes(req: Request, res: Response) {
       .sort((a, b) => a.inicio.getTime() - b.inicio.getTime());
     const anteriores = itens.filter((r) => r.inicio < agora);
 
-    // Pedidos que o sócio ainda pode responder: pendentes, futuros e dentro do prazo.
     const pendentes = eSocio
       ? itens
           .filter((r) => r.status === 'PENDENTE' && r.statusExibido === 'PENDENTE' && r.inicio > agora)
@@ -58,14 +57,16 @@ export async function mostrarReunioes(req: Request, res: Response) {
 
     res.render('reunioes', {
       eSocio,
+      assuntoMax: ASSUNTO_MAX,
       aba,
       proximas,
       anteriores,
       pendentes,
       clientes: eSocio ? await listarClientes() : [],
       horasInicio: horariosDoDia(agora).map((h) => h.getHours()),
-      duracoes: DURACOES_MIN,
-      msg: MENSAGENS[String(req.query.msg || '')] ?? null,
+      hoje: formatarDiaISO(agora),
+      duracoes: DURACOES_MIN.map((minutos) => ({ minutos, rotulo: rotuloDuracao(minutos) })),
+      msg: mensagemDe(req.query.msg),
     });
   } catch (erro) {
     console.error(erro);
@@ -90,7 +91,7 @@ export async function responder(req: Request, res: Response) {
   try {
     const id = Number(req.params.id);
     const socioId = req.session.usuario!.id;
-    const volta = (msg: string) => res.redirect('/reunioes?aba=pendentes&msg=' + msg);
+    const volta = (msg: string, aba = 'pendentes') => res.redirect('/reunioes?aba=' + aba + '&msg=' + msg);
 
     if (!Number.isInteger(id)) return volta('pedido-indisponivel');
 
@@ -105,7 +106,7 @@ export async function responder(req: Request, res: Response) {
       duracao: 'duracao',
       conflito: 'conflito',
     };
-    return volta(mensagens[resultado]);
+    return volta(mensagens[resultado], resultado === 'ok' ? 'agenda' : 'pendentes');
   } catch (erro) {
     console.error(erro);
     res.status(500).send('Erro interno ao responder o pedido.');
@@ -120,9 +121,9 @@ export async function registrar(req: Request, res: Response) {
     const hora = Number(req.body.hora);
     const duracao = Number(req.body.duracao);
     const assunto = String(req.body.assunto || '').trim();
-    const tipo = req.body.tipo === 'PRESENCIAL' ? 'PRESENCIAL' : 'ONLINE';
+    const tipo = lerTipo(req.body.tipo);
 
-    if (!clienteId || !dia || !Number.isInteger(hora) || !assunto || assunto.length > 200) {
+    if (!clienteId || !dia || !Number.isInteger(hora) || !assunto || assunto.length > ASSUNTO_MAX) {
       return res.redirect('/reunioes?aba=registrar&msg=registro-invalido');
     }
 

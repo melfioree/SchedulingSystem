@@ -1,5 +1,6 @@
 import { prisma } from '../db';
-import type { PrismaClient } from '../generated/prisma/client';
+import type { Prisma, PrismaClient } from '../generated/prisma/client';
+import type { TipoReuniao } from '../generated/prisma/enums';
 import {
   horariosDoDia,
   somarMinutos,
@@ -13,10 +14,17 @@ import {
 } from './regras';
 
 type Banco = Pick<PrismaClient, 'agendamento'>;
+type Ocupacao = { inicio: Date; fim: Date };
 
-// Intervalos ocupados do sócio em um dia (pendentes que ainda valem + confirmados).
-// ignorarId serve para não comparar um pedido com ele mesmo na hora de confirmar.
-export async function ocupacoesDoDia(socioId: number, dia: Date, banco: Banco = prisma, ignorarId?: number) {
+export async function travarSocio(tx: Prisma.TransactionClient, socioId: number) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${socioId}::bigint)`;
+}
+
+export function temConflito(ocupacoes: Ocupacao[], inicio: Date, fim: Date): boolean {
+  return ocupacoes.some((o) => sobrepoe(inicio, fim, o.inicio, o.fim));
+}
+
+export async function ocupacoesDoDia(socioId: number, dia: Date, banco: Banco = prisma, ignorarId?: number): Promise<Ocupacao[]> {
   const inicioDoDia = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate());
   const fimDoDia = somarMinutos(inicioDoDia, 24 * 60);
 
@@ -44,7 +52,7 @@ export async function horariosLivres(socioId: number, dia: Date, banco: Banco = 
 
   return horariosDoDia(dia).filter((h) => {
     const fim = somarMinutos(h, DURACAO_PEDIDO_MIN);
-    return h.getTime() > agora.getTime() && !ocupacoes.some((o) => sobrepoe(h, fim, o.inicio, o.fim));
+    return h.getTime() > agora.getTime() && !temConflito(ocupacoes, h, fim);
   });
 }
 
@@ -53,10 +61,10 @@ export async function pedirReuniao(
   socioId: number,
   inicio: Date,
   assunto: string,
-  tipo: 'ONLINE' | 'PRESENCIAL',
+  tipo: TipoReuniao,
 ): Promise<'ok' | 'conflito'> {
   return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${socioId}::bigint)`;
+    await travarSocio(tx, socioId);
 
     const dia = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
     const livres = await horariosLivres(socioId, dia, tx);
@@ -72,14 +80,13 @@ export async function pedirReuniao(
   });
 }
 
-// Sócio registra uma reunião pedida por e-mail ou telefone: já entra como CONFIRMADO (RF03).
 export async function registrarReuniao(
   socioId: number,
   clienteId: number,
   inicio: Date,
   duracao: number,
   assunto: string,
-  tipo: 'ONLINE' | 'PRESENCIAL',
+  tipo: TipoReuniao,
 ): Promise<'ok' | 'invalido' | 'conflito'> {
   const fim = somarMinutos(inicio, duracao);
   if (
@@ -94,13 +101,13 @@ export async function registrarReuniao(
   }
 
   return prisma.$transaction(async (tx): Promise<'ok' | 'invalido' | 'conflito'> => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${socioId}::bigint)`;
+    await travarSocio(tx, socioId);
 
     const cliente = await tx.usuario.findFirst({ where: { id: clienteId, perfil: 'CLIENTE' } });
     if (!cliente) return 'invalido';
 
     const ocupacoes = await ocupacoesDoDia(socioId, inicio, tx);
-    if (ocupacoes.some((o) => sobrepoe(inicio, fim, o.inicio, o.fim))) {
+    if (temConflito(ocupacoes, inicio, fim)) {
       return 'conflito';
     }
 

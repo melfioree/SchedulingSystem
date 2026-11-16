@@ -1,16 +1,10 @@
 import { prisma } from '../db';
-import {
-  somarMinutos,
-  sobrepoe,
-  pedidoExpirou,
-  duracaoValida,
-  fimDoExpediente,
-} from './regras';
-import { ocupacoesDoDia } from './agendamentoService';
+import type { Perfil } from '../generated/prisma/enums';
+import { somarMinutos, pedidoExpirou, duracaoValida, fimDoExpediente } from './regras';
+import { ocupacoesDoDia, travarSocio, temConflito } from './agendamentoService';
 
-type Usuario = { id: number; perfil: 'CLIENTE' | 'SOCIO' };
+type Usuario = { id: number; perfil: Perfil };
 
-// Cada usuário só enxerga as próprias reuniões (RF05).
 function doUsuario(usuario: Usuario) {
   return usuario.perfil === 'SOCIO' ? { socioId: usuario.id } : { clienteId: usuario.id };
 }
@@ -20,7 +14,7 @@ export async function listarReunioes(usuario: Usuario) {
     where: doUsuario(usuario),
     orderBy: { inicio: 'desc' },
     include: {
-      cliente: { select: { nome: true } },
+      cliente: { select: { nome: true, email: true, telefone: true } },
       socio: { select: { nome: true } },
     },
   });
@@ -39,14 +33,13 @@ export async function cancelarReuniao(id: number, usuario: Usuario): Promise<boo
   return resultado.count === 1;
 }
 
-export type RespostaPedido = 'ok' | 'indisponivel' | 'duracao' | 'conflito';
+type RespostaPedido = 'ok' | 'indisponivel' | 'duracao' | 'conflito';
 
-// Sócio confirma um pedido pendente definindo a duração (RF04).
 export async function confirmarPedido(socioId: number, id: number, duracao: number): Promise<RespostaPedido> {
   if (!duracaoValida(duracao)) return 'duracao';
 
   return prisma.$transaction(async (tx): Promise<RespostaPedido> => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${socioId}::bigint)`;
+    await travarSocio(tx, socioId);
 
     const pedido = await tx.agendamento.findFirst({
       where: { id, socioId, status: 'PENDENTE', inicio: { gt: new Date() } },
@@ -57,7 +50,7 @@ export async function confirmarPedido(socioId: number, id: number, duracao: numb
     if (fim > fimDoExpediente(pedido.inicio)) return 'duracao';
 
     const ocupacoes = await ocupacoesDoDia(socioId, pedido.inicio, tx, id);
-    if (ocupacoes.some((o) => sobrepoe(pedido.inicio, fim, o.inicio, o.fim))) return 'conflito';
+    if (temConflito(ocupacoes, pedido.inicio, fim)) return 'conflito';
 
     await tx.agendamento.update({
       where: { id },

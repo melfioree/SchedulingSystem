@@ -1,18 +1,15 @@
-<%- include('partials/topo', { titulo: 'Agendar reunião' }) %>
+<%- include('partials/topo', { titulo: 'Pedir reunião' }) %>
 
 <%- include('partials/abasCliente', { ativa: 'agendar' }) %>
 
-<% if (erro) { %>
-  <div class="alert alert-danger" role="alert"><%= erro %></div>
-<% } %>
-
 <% if (msg) { %>
-    <div class="alert alert-<%= msg.tipo %>" role="alert"><%= msg.texto %></div>
+  <div class="alert alert-<%= msg.tipo %>" role="alert"><%= msg.texto %></div>
 <% } %>
 
-<form method="get" action="/agendar" class="card shadow-sm p-4 mb-4">
-  <div class="row g-3 align-items-end">
-    <div class="col-md-5">
+<form method="post" action="/agendar" id="formPedido" class="card shadow-sm p-4">
+  <p class="text-muted">O sócio responde em até 2 dias úteis e define a duração da reunião.</p>
+  <div class="row g-3">
+    <div class="col-md-6">
       <label class="form-label" for="socio">Sócio</label>
       <select class="form-select" id="socio" name="socio" required>
         <option value="">Escolha um sócio</option>
@@ -21,110 +18,139 @@
         <% }); %>
       </select>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
       <label class="form-label" for="dia">Dia</label>
-      <input class="form-control" type="date" id="dia" name="dia" value="<%= dia %>" required>
+      <input class="form-control" type="date" id="dia" name="dia" value="<%= dia %>" min="<%= hoje %>" required>
     </div>
     <div class="col-md-3">
-      <button class="btn btn-success w-100" type="submit">Ver horários</button>
+      <label class="form-label" for="inicio">Início</label>
+      <select class="form-select" id="inicio" name="inicio" required disabled>
+        <option value="">Escolha sócio e dia</option>
+      </select>
     </div>
+    <div class="col-md-4">
+      <label class="form-label" for="tipo">Tipo</label>
+      <select class="form-select" id="tipo" name="tipo" required>
+        <option value="ONLINE" <%= tipo === 'ONLINE' ? 'selected' : '' %>>Online</option>
+        <option value="PRESENCIAL" <%= tipo === 'PRESENCIAL' ? 'selected' : '' %>>Presencial</option>
+      </select>
+    </div>
+    <div class="col-md-8">
+      <label class="form-label" for="assunto">Assunto</label>
+      <input class="form-control" type="text" id="assunto" name="assunto" maxlength="<%= assuntoMax %>" required>
+      <div class="form-text text-end"><span id="contador">0</span>/<%= assuntoMax %></div>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-3 mt-3">
+    <button class="btn btn-success" type="submit">Pedir reunião</button>
+    <span class="small text-muted" id="avisoHorarios"></span>
   </div>
 </form>
 
-<% if (horarios !== null) { %>
-  <h2 class="h5">Horários livres</h2>
-  <% if (horarios.length === 0) { %>
-    <p>Não há horários livres neste dia.</p>
-  <% } else { %>
-    <% const socioEscolhido = socios.find(function (s) { return s.id === socioId; }); %>
-    <form method="post" action="/agendar" id="formPedido" data-socio="<%= socioEscolhido ? socioEscolhido.nome : '' %>">
-        <input type="hidden" name="socio" value="<%= socioId %>">
-        <input type="hidden" name="inicio" id="inicio">
-        <div class="mb-3">
-            <label class="form-label" for="assunto">Assunto</label>
-            <input class="form-control" type="text" id="assunto" name="assunto" maxlength="200" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label" for="tipo">Tipo de reunião</label>   
-             <select class="form-select" id="tipo" name="tipo" required>
-                <option value="ONLINE">Online</option>
-                 <option value="PRESENCIAL">Presencial</option>
-             </select>
-        </div>
-        <p class="mb-2">Escolha um horário para a reunião:</p>
-        <div class="d-flex flex-wrap gap-2">
-            <% horarios.forEach(function (h) { %>
-                <button class="btn btn-success horario" type="button"
-                    data-inicio="<%= h.toISOString() %>"
-                    data-data="<%= h.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %>"
-                    data-hora="<%= h.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) %>">
-                    <%= h.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) %>
-                </button>  
-            <% }); %>
-        </div>
-    </form>
-
-    <div class="modal fade" id="modalConfirmar" tabindex="-1" aria-labelledby="tituloModal" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title h5" id="tituloModal">Confirmar pedido de reunião</h2>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Confira os dados antes de enviar:</p>
-                    <dl class="row mb-3">
-                        <dt class="col-sm-4">Sócio</dt>
-                        <dd class="col-sm-8" id="resSocio"></dd>
-                        <dt class="col-sm-4">Data</dt>
-                        <dd class="col-sm-8" id="resData"></dd>
-                        <dt class="col-sm-4">Horário</dt>
-                        <dd class="col-sm-8" id="resHora"></dd>
-                        <dt class="col-sm-4">Tipo</dt>
-                        <dd class="col-sm-8" id="resTipo"></dd>
-                        <dt class="col-sm-4">Assunto</dt>
-                        <dd class="col-sm-8" id="resAssunto"></dd>
-                    </dl>
-                    <p class="small text-muted mb-0">O pedido fica pendente até o sócio confirmar ou recusar, em até 2 dias úteis.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
-                    <button type="button" class="btn btn-success" id="confirmar">Confirmar pedido</button>
-                </div>
-            </div>
-        </div>
+<div class="modal fade" id="modalConfirmar" tabindex="-1" aria-labelledby="tituloModal" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="tituloModal">Confirmar pedido</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p>Confira os dados antes de enviar:</p>
+        <dl class="row mb-3">
+          <dt class="col-sm-4">Sócio</dt>
+          <dd class="col-sm-8" id="resSocio"></dd>
+          <dt class="col-sm-4">Data</dt>
+          <dd class="col-sm-8" id="resData"></dd>
+          <dt class="col-sm-4">Horário</dt>
+          <dd class="col-sm-8" id="resHora"></dd>
+          <dt class="col-sm-4">Tipo</dt>
+          <dd class="col-sm-8" id="resTipo"></dd>
+          <dt class="col-sm-4">Assunto</dt>
+          <dd class="col-sm-8 text-break" id="resAssunto"></dd>
+        </dl>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
+        <button type="button" class="btn btn-success" id="confirmar">Confirmar pedido</button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var form = document.getElementById('formPedido');
-            var modalEl = document.getElementById('modalConfirmar');
-            var assunto = document.getElementById('assunto');
-            var tipo = document.getElementById('tipo');
-            var modal = new bootstrap.Modal(modalEl);
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('formPedido');
+    var socio = document.getElementById('socio');
+    var dia = document.getElementById('dia');
+    var inicio = document.getElementById('inicio');
+    var aviso = document.getElementById('avisoHorarios');
+    var modal = new bootstrap.Modal(document.getElementById('modalConfirmar'));
 
-            form.querySelectorAll('.horario').forEach(function (botao) {
-                botao.addEventListener('click', function () {
-                    if (!form.reportValidity()) return;
-                    if (!assunto.value.trim()) { assunto.focus(); return; }
+    function opcao(texto, valor) {
+      var o = document.createElement('option');
+      o.textContent = texto;
+      o.value = valor;
+      return o;
+    }
 
-                    document.getElementById('inicio').value = botao.dataset.inicio;
-                    document.getElementById('resSocio').textContent = form.dataset.socio;
-                    document.getElementById('resData').textContent = botao.dataset.data;
-                    document.getElementById('resHora').textContent = botao.dataset.hora;
-                    document.getElementById('resTipo').textContent = tipo.options[tipo.selectedIndex].text;
-                    document.getElementById('resAssunto').textContent = assunto.value.trim();
-                    modal.show();
-                });
-            });
+    function carregarHorarios() {
+      inicio.innerHTML = '';
+      inicio.disabled = true;
+      aviso.textContent = '';
 
-            document.getElementById('confirmar').addEventListener('click', function () {
-                this.disabled = true;
-                form.submit();
-            });
+      if (!socio.value || !dia.value) {
+        inicio.appendChild(opcao('Escolha sócio e dia', ''));
+        return;
+      }
+
+      fetch('/agendar/horarios?socio=' + encodeURIComponent(socio.value) + '&dia=' + encodeURIComponent(dia.value))
+        .then(function (resposta) { return resposta.json(); })
+        .then(function (dados) {
+          if (dados.horarios.length === 0) {
+            inicio.appendChild(opcao('Sem horários', ''));
+            aviso.textContent = dados.aviso;
+            return;
+          }
+          inicio.appendChild(opcao('Escolha o horário', ''));
+          dados.horarios.forEach(function (h) { inicio.appendChild(opcao(h.rotulo, h.inicio)); });
+          inicio.disabled = false;
+        })
+        .catch(function () {
+          inicio.appendChild(opcao('Erro ao carregar', ''));
         });
-    </script>
-  <% } %>
-<% } %>
+    }
+
+    var assuntoCampo = document.getElementById('assunto');
+    assuntoCampo.addEventListener('input', function () {
+      document.getElementById('contador').textContent = assuntoCampo.value.length;
+    });
+
+    socio.addEventListener('change', carregarHorarios);
+    dia.addEventListener('change', carregarHorarios);
+    if (socio.value && dia.value) carregarHorarios();
+
+    form.addEventListener('submit', function (evento) {
+      evento.preventDefault();
+      var assunto = document.getElementById('assunto');
+      if (!assunto.value.trim()) {
+        assunto.value = '';
+        form.reportValidity();
+        return;
+      }
+      var data = new Date(dia.value + 'T12:00:00');
+      document.getElementById('resSocio').textContent = socio.options[socio.selectedIndex].text;
+      document.getElementById('resData').textContent = data.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      document.getElementById('resHora').textContent = inicio.options[inicio.selectedIndex].text;
+      document.getElementById('resTipo').textContent = document.getElementById('tipo').selectedOptions[0].text;
+      document.getElementById('resAssunto').textContent = assunto.value.trim();
+      modal.show();
+    });
+
+    document.getElementById('confirmar').addEventListener('click', function () {
+      this.disabled = true;
+      form.submit();
+    });
+  });
+</script>
 
 <%- include('partials/rodape') %>

@@ -2,7 +2,6 @@
 
 <% if (eSocio) { %>
   <h1 class="h3 saudacao">Olá, <%= usuario.nome %></h1>
-  <p class="text-muted subsaudacao">Responda aos pedidos de reunião e acompanhe a sua agenda.</p>
 <% } else { %>
   <%- include('partials/abasCliente', { ativa: 'reunioes' }) %>
 <% } %>
@@ -32,8 +31,6 @@
 
   <div class="tab-content">
     <div class="tab-pane fade <%= aba === 'pendentes' ? 'show active' : '' %>" id="abaPendentes" role="tabpanel">
-      <% const hora = { hour: '2-digit', minute: '2-digit' }; %>
-
       <% if (pendentes.length === 0) { %>
         <p class="text-muted">Nenhum pedido aguardando resposta.</p>
       <% } else { %>
@@ -49,25 +46,26 @@
             </thead>
             <tbody>
               <% pendentes.forEach(function (r) { %>
-                <% const dataTexto = r.inicio.toLocaleDateString('pt-BR'); %>
-                <% const inicioTexto = r.inicio.toLocaleTimeString('pt-BR', hora); %>
-                <% const resumo = dataTexto + ' às ' + inicioTexto + ', com ' + r.cliente.nome; %>
+                <% const dataTexto = formatarData(r.inicio); %>
+                <% const horaTexto = formatarHora(r.inicio); %>
+                <% const resumo = dataTexto + ' às ' + horaTexto + ', com ' + r.cliente.nome; %>
                 <tr>
                   <td>
                     <%= dataTexto %><br>
-                    <small class="text-muted"><%= inicioTexto %></small>
+                    <small class="text-muted"><%= horaTexto %></small>
                   </td>
                   <td class="text-break"><%= r.cliente.nome %></td>
                   <td class="text-break">
                     <%= r.assunto %><br>
                     <small class="text-muted">
-                      <%= r.tipo === 'PRESENCIAL' ? 'Presencial' : 'Online' %> · pedido em <%= r.criadoEm.toLocaleDateString('pt-BR') %>
+                      <%= r.tipo === 'PRESENCIAL' ? 'Presencial' : 'Online' %> · pedido em <%= formatarData(r.criadoEm) %>
                     </small>
                   </td>
                   <td>
                     <div class="d-flex flex-column flex-md-row gap-1 justify-content-md-end">
                       <button class="btn btn-sm btn-success confirmar-pedido" type="button"
-                              data-id="<%= r.id %>" data-resumo="<%= resumo %>">Confirmar</button>
+                              data-id="<%= r.id %>" data-resumo="<%= resumo %>"
+                              data-email="<%= r.cliente.email %>" data-telefone="<%= r.telefoneCliente %>">Confirmar</button>
                       <button class="btn btn-sm btn-outline-danger recusar-pedido" type="button"
                               data-id="<%= r.id %>" data-resumo="<%= resumo %>">Recusar</button>
                     </div>
@@ -81,14 +79,10 @@
     </div>
 
     <div class="tab-pane fade <%= aba === 'agenda' ? 'show active' : '' %>" id="abaAgenda" role="tabpanel">
-      <h2 class="h5">Próximas</h2>
-      <%- include('partials/tabelaReunioes', { itens: proximas, eSocio: eSocio, vazio: 'Nenhuma reunião marcada ou pedida.' }) %>
-      <h2 class="h5">Anteriores</h2>
-      <%- include('partials/tabelaReunioes', { itens: anteriores, eSocio: eSocio, vazio: 'Nenhuma reunião anterior.' }) %>
+      <%- include('partials/agenda') %>
     </div>
 
     <div class="tab-pane fade <%= aba === 'registrar' ? 'show active' : '' %>" id="abaRegistrar" role="tabpanel">
-      <% const hoje = new Date().toLocaleDateString('en-CA'); %>
       <form method="post" action="/reunioes/registrar" class="card shadow-sm p-4">
         <p class="text-muted">Para reuniões pedidas por e-mail ou telefone. Elas já entram como confirmadas e ocupam o horário.</p>
         <div class="row g-3">
@@ -118,9 +112,7 @@
             <select class="form-select" id="duracaoRegistro" name="duracao" required>
               <option value="" selected disabled>Escolha a duração</option>
               <% duracoes.forEach(function (d) { %>
-                <option value="<%= d %>">
-                  <%= d === 30 ? '30 minutos' : d === 60 ? '1 hora' : d === 90 ? '1 hora e 30 minutos' : '2 horas' %>
-                </option>
+                <option value="<%= d.minutos %>"><%= d.rotulo %></option>
               <% }); %>
             </select>
           </div>
@@ -133,7 +125,7 @@
           </div>
           <div class="col-md-4">
             <label class="form-label" for="assuntoRegistro">Assunto</label>
-            <input class="form-control" type="text" id="assuntoRegistro" name="assunto" maxlength="200" required>
+            <input class="form-control" type="text" id="assuntoRegistro" name="assunto" maxlength="<%= assuntoMax %>" required>
           </div>
         </div>
         <div class="mt-3">
@@ -143,10 +135,7 @@
     </div>
   </div>
 <% } else { %>
-  <h2 class="h5">Próximas</h2>
-  <%- include('partials/tabelaReunioes', { itens: proximas, eSocio: eSocio, vazio: 'Nenhuma reunião marcada ou pedida.' }) %>
-  <h2 class="h5">Anteriores</h2>
-  <%- include('partials/tabelaReunioes', { itens: anteriores, eSocio: eSocio, vazio: 'Nenhuma reunião anterior.' }) %>
+  <%- include('partials/agenda') %>
 <% } %>
 
 <div class="modal fade" id="modalCancelar" tabindex="-1" aria-labelledby="tituloCancelar" aria-hidden="true">
@@ -181,14 +170,18 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
           <div class="modal-body">
-            <p id="resumoConfirmarPedido"></p>
+            <p id="resumoConfirmarPedido" class="mb-2"></p>
+            <dl class="row small mb-3">
+              <dt class="col-sm-3">E-mail</dt>
+              <dd class="col-sm-9 text-break"><a id="contatoEmail" href="#"></a></dd>
+              <dt class="col-sm-3">Telefone</dt>
+              <dd class="col-sm-9" id="contatoTelefone"></dd>
+            </dl>
             <label class="form-label" for="duracaoConfirmar">Duração da reunião</label>
             <select class="form-select" id="duracaoConfirmar" name="duracao" required>
               <option value="" selected disabled>Escolha a duração</option>
               <% duracoes.forEach(function (d) { %>
-                <option value="<%= d %>">
-                  <%= d === 30 ? '30 minutos' : d === 60 ? '1 hora' : d === 90 ? '1 hora e 30 minutos' : '2 horas' %>
-                </option>
+                <option value="<%= d.minutos %>"><%= d.rotulo %></option>
               <% }); %>
             </select>
             <p class="small text-muted mt-2 mb-0">O máximo é 2 horas, e a reunião deve terminar até as 18h sem invadir outra reunião.</p>
@@ -227,7 +220,6 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // liga cada botão da tabela ao seu pop-up: preenche o resumo e o endereço do formulário
     function ligar(classeBotao, idModal, idForm, idResumo, caminho) {
       var elemento = document.getElementById(idModal);
       if (!elemento) return;
@@ -237,7 +229,12 @@
         botao.addEventListener('click', function () {
           form.action = '/reunioes/' + botao.dataset.id + '/' + caminho;
           document.getElementById(idResumo).textContent = botao.dataset.resumo;
-          // o sócio precisa escolher a duração a cada confirmação
+          if (botao.dataset.email) {
+            var email = document.getElementById('contatoEmail');
+            email.textContent = botao.dataset.email;
+            email.href = 'mailto:' + botao.dataset.email;
+            document.getElementById('contatoTelefone').textContent = botao.dataset.telefone || 'Não informado';
+          }
           var duracao = form.querySelector('select[name="duracao"]');
           if (duracao) duracao.selectedIndex = 0;
           modal.show();

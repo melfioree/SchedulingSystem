@@ -1,9 +1,8 @@
 <h1 class="h3 saudacao">Olá, <%= usuario.nome %></h1>
-<p class="text-muted subsaudacao">Peça reuniões com os sócios e acompanhe os seus pedidos.</p>
 
 <ul class="nav nav-pills">
   <li class="nav-item">
-    <a class="nav-link <%= ativa === 'agendar' ? 'active' : '' %>" href="/agendar">Agendar reunião</a>
+    <a class="nav-link <%= ativa === 'agendar' ? 'active' : '' %>" href="/agendar">Pedir reunião</a>
   </li>
   <li class="nav-item">
     <a class="nav-link <%= ativa === 'reunioes' ? 'active' : '' %>" href="/reunioes">Minhas reuniões</a>

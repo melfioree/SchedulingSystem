@@ -1,0 +1,56 @@
+<% const cores = { PENDENTE: 'warning', CONFIRMADO: 'success', RECUSADO: 'danger', CANCELADO: 'secondary', EXPIRADO: 'secondary' }; %>
+<% const nomes = { PENDENTE: 'Pendente', CONFIRMADO: 'Confirmado', RECUSADO: 'Recusado', CANCELADO: 'Cancelado', EXPIRADO: 'Expirado' }; %>
+<% const grupos = [
+  { titulo: 'Próximas', itens: proximas, vazio: 'Nenhuma reunião marcada ou pedida.' },
+  { titulo: 'Anteriores', itens: anteriores, vazio: 'Nenhuma reunião anterior.' },
+]; %>
+
+<% grupos.forEach(function (grupo) { %>
+  <h2 class="h5"><%= grupo.titulo %></h2>
+
+  <% if (grupo.itens.length === 0) { %>
+    <p class="text-muted"><%= grupo.vazio %></p>
+  <% } else { %>
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle bg-white shadow-sm mb-0">
+        <thead>
+          <tr>
+            <th>Data e horário</th>
+            <th><%= eSocio ? 'Cliente' : 'Sócio' %></th>
+            <th>Assunto</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% grupo.itens.forEach(function (r) { %>
+            <% const outro = eSocio ? r.cliente.nome : r.socio.nome; %>
+            <tr>
+              <td>
+                <%= formatarData(r.inicio) %><br>
+                <small class="text-muted">
+                  <%= formatarHora(r.inicio) %><% if (r.fim) { %> às <%= formatarHora(r.fim) %><% } %>
+                </small>
+              </td>
+              <td class="text-break"><%= outro %></td>
+              <td class="text-break">
+                <%= r.assunto %><br>
+                <small class="text-muted"><%= r.tipo === 'PRESENCIAL' ? 'Presencial' : 'Online' %></small>
+              </td>
+              <td><span class="badge text-bg-<%= cores[r.statusExibido] %>"><%= nomes[r.statusExibido] %></span></td>
+              <td class="text-end">
+                <% if (r.podeCancelar) { %>
+                  <button class="btn btn-sm btn-outline-danger cancelar" type="button"
+                          data-id="<%= r.id %>"
+                          data-resumo="<%= formatarData(r.inicio) %> às <%= formatarHora(r.inicio) %>, com <%= outro %>">
+                    Cancelar
+                  </button>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+<% }); %>
