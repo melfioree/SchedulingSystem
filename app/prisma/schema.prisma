@@ -31,6 +31,7 @@ model Usuario {
   nome      String
   email     String   @unique
   cpf       String?  @unique
+  telefone  String?
   senhaHash String
   perfil    Perfil   @default(CLIENTE)
   criadoEm  DateTime @default(now())

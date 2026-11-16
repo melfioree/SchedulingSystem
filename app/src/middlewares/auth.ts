@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import type { Perfil } from '../generated/prisma/enums';
 
-type Perfil = 'CLIENTE' | 'SOCIO';
+export function telaInicial(perfil: Perfil) {
+  return perfil === 'SOCIO' ? '/reunioes' : '/agendar';
+}
 
 export function exigirLogin(req: Request, res: Response, next: NextFunction) {
   if (!req.session.usuario) {
@@ -20,4 +23,4 @@ export function exigirPerfil(perfil: Perfil) {
     }
     next();
   };
-}
+}

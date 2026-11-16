@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from 'crypto';
+import type { TipoReuniao } from '../generated/prisma/enums';
 
 export function cpfValido(cpf: string): boolean {
   const numeros = cpf.replace(/\D/g, '');
@@ -28,7 +29,7 @@ export function codigosIguais(informado: string, esperado: string): boolean {
 }
 
 export const HORA_ABERTURA = 8;
-export const HORA_FECHAMENTO = 18;
+const HORA_FECHAMENTO = 18;
 export const DURACAO_PEDIDO_MIN = 60;
 
 export function lerDia(texto: string): Date | null {
@@ -62,7 +63,7 @@ export function sobrepoe(aIni: Date, aFim: Date, bIni: Date, bFim: Date): boolea
   return aIni < bFim && bIni < aFim;
 }
 
-export function adicionarDiasUteis(data: Date, quantidade: number): Date {
+function adicionarDiasUteis(data: Date, quantidade: number): Date {
   const r = new Date(data);
   let falta = quantidade;
   while (falta > 0) {
@@ -84,4 +85,40 @@ export function duracaoValida(minutos: number): boolean {
 
 export function fimDoExpediente(dia: Date): Date {
   return new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), HORA_FECHAMENTO);
+}
+
+export const ASSUNTO_MAX = 100;
+
+export function formatarTelefone(digitos: string | null): string {
+  if (!digitos) return '';
+  if (digitos.length === 11) return digitos.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+  if (digitos.length === 10) return digitos.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+  return digitos;
+}
+
+export function lerTipo(valor: unknown): TipoReuniao {
+  return valor === 'PRESENCIAL' ? 'PRESENCIAL' : 'ONLINE';
+}
+
+const ROTULOS_DURACAO: Record<number, string> = {
+  30: '30 minutos',
+  60: '1 hora',
+  90: '1 hora e 30 minutos',
+  120: '2 horas',
+};
+
+export function rotuloDuracao(minutos: number): string {
+  return ROTULOS_DURACAO[minutos] ?? minutos + ' minutos';
+}
+
+export function formatarData(data: Date): string {
+  return data.toLocaleDateString('pt-BR');
+}
+
+export function formatarHora(data: Date): string {
+  return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+export function formatarDiaISO(data: Date): string {
+  return data.toLocaleDateString('en-CA');
 }

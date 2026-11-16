@@ -1,0 +1,155 @@
+<%- include('partials/topo', { titulo: titulo }) %>
+
+<div class="caixa-login card shadow-sm p-4">
+  <h1 class="h4 mb-3">Editar perfil</h1>
+
+  <% if (erro) { %>
+    <div class="alert alert-danger" role="alert"><%= erro %></div>
+  <% } %>
+
+  <form method="post" action="/perfil" id="formPerfil">
+    <input type="hidden" id="novaSenha" name="novaSenha">
+    <input type="hidden" id="confirmarSenha" name="confirmarSenha">
+    <input type="hidden" id="senhaAtual" name="senhaAtual">
+
+    <div class="mb-3">
+      <label class="form-label" for="nome">Nome completo</label>
+      <input class="form-control" type="text" id="nome" name="nome" maxlength="100" value="<%= valores.nome %>" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="email">E-mail</label>
+      <input class="form-control" type="email" id="email" value="<%= conta.email %>" disabled>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="cpf">CPF</label>
+      <input class="form-control" type="text" id="cpf" value="<%= conta.cpf || '' %>" disabled>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="telefone">Telefone</label>
+      <input class="form-control" type="tel" id="telefone" name="telefone" placeholder="(35) 99999-9999" value="<%= valores.telefone %>">
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+      <div>
+        <div class="fw-semibold">Senha</div>
+        <div class="small text-muted" id="avisoSenha">••••••••</div>
+      </div>
+      <button class="btn btn-outline-success text-nowrap flex-shrink-0" type="button" data-bs-toggle="modal" data-bs-target="#modalSenha">Alterar</button>
+    </div>
+
+    <hr class="my-4">
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary px-4" href="<%= inicio %>">Cancelar</a>
+      <button class="btn btn-success flex-grow-1" type="submit">Salvar dados</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal fade" id="modalConfirmar" tabindex="-1" aria-labelledby="tituloConfirmar" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="tituloConfirmar">Confirmar alterações</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="campoAtual">Digite sua senha atual</label>
+        <%- include('partials/campoSenha', { id: 'campoAtual', autocomplete: 'current-password', obrigatorio: false }) %>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" id="confirmarSalvar">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalSenha" tabindex="-1" aria-labelledby="tituloSenha" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="tituloSenha">Alterar senha</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger d-none" role="alert" id="erroSenha"></div>
+        <div class="mb-3">
+          <label class="form-label" for="campoNova">Nova senha</label>
+          <%- include('partials/campoSenha', { id: 'campoNova', autocomplete: 'new-password', obrigatorio: false }) %>
+          <div class="form-text">Mínimo de 8 caracteres.</div>
+        </div>
+        <div class="mb-0">
+          <label class="form-label" for="campoConfirmar">Repita a nova senha</label>
+          <%- include('partials/campoSenha', { id: 'campoConfirmar', autocomplete: 'new-password', obrigatorio: false }) %>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" id="usarSenha">Concluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var formPerfil = document.getElementById('formPerfil');
+    var modalConfirmarEl = document.getElementById('modalConfirmar');
+    var modalConfirmar = new bootstrap.Modal(modalConfirmarEl);
+    var campoAtual = document.getElementById('campoAtual');
+
+    formPerfil.addEventListener('submit', function (evento) {
+      evento.preventDefault();
+      modalConfirmar.show();
+    });
+
+    modalConfirmarEl.addEventListener('shown.bs.modal', function () {
+      campoAtual.value = '';
+      campoAtual.focus();
+    });
+
+    function salvar() {
+      document.getElementById('senhaAtual').value = campoAtual.value;
+      document.getElementById('confirmarSalvar').disabled = true;
+      formPerfil.submit();
+    }
+    document.getElementById('confirmarSalvar').addEventListener('click', salvar);
+    campoAtual.addEventListener('keydown', function (evento) {
+      if (evento.key === 'Enter') salvar();
+    });
+
+    var modalEl = document.getElementById('modalSenha');
+    var modal = new bootstrap.Modal(modalEl);
+    var nova = document.getElementById('campoNova');
+    var confirmar = document.getElementById('campoConfirmar');
+    var erro = document.getElementById('erroSenha');
+
+    modalEl.addEventListener('show.bs.modal', function () {
+      nova.value = '';
+      confirmar.value = '';
+      erro.classList.add('d-none');
+    });
+
+    document.getElementById('usarSenha').addEventListener('click', function () {
+      var mensagem = '';
+      if (nova.value.length < 8) mensagem = 'A nova senha precisa ter pelo menos 8 caracteres.';
+      else if (nova.value !== confirmar.value) mensagem = 'A nova senha e a confirmação não conferem.';
+
+      if (mensagem) {
+        erro.textContent = mensagem;
+        erro.classList.remove('d-none');
+        return;
+      }
+
+      document.getElementById('novaSenha').value = nova.value;
+      document.getElementById('confirmarSenha').value = confirmar.value;
+      var aviso = document.getElementById('avisoSenha');
+      aviso.textContent = '✓ Nova senha definida';
+      aviso.classList.remove('text-muted');
+      aviso.classList.add('text-success');
+      modal.hide();
+    });
+  });
+</script>
+
+<%- include('partials/rodape') %>

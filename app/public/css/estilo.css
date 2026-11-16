@@ -8,6 +8,10 @@
   --texto: #1f2a24;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
   background-color: var(--fundo);
@@ -83,18 +87,6 @@ a:hover { color: var(--verde-escuro); }
   --bs-btn-active-border-color: var(--verde-escuro);
 }
 
-/* botões lado a lado, com espaço entre eles (o <main> é uma coluna flex e esticaria os links) */
-.acoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 1.25rem;
-}
-.acoes .btn {
-  padding: 0.65rem 1.5rem;
-  min-width: 12rem;
-}
-
 .form-control:focus, .form-select:focus {
   border-color: var(--verde-medio);
   box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.25);
@@ -123,9 +115,7 @@ a:hover { color: var(--verde-escuro); }
   color: #fff;
 }
 
-/* ritmo vertical das páginas: saudação, abas e títulos de seção com os mesmos espaços */
-.saudacao { margin-bottom: 0.25rem; font-weight: 600; }
-.subsaudacao { margin-bottom: 1.25rem; }
+.saudacao { margin-bottom: 1rem; font-weight: 600; }
 .nav-pills { margin-bottom: 1.5rem; gap: 0.25rem; }
 main h2.h5:not(.modal-title) { margin-top: 1.75rem; margin-bottom: 0.75rem; font-weight: 600; }
 main h2.h5:not(.modal-title):first-child { margin-top: 0; }
@@ -134,3 +124,33 @@ main h2.h5:not(.modal-title):first-child { margin-top: 0; }
 .table thead th { font-weight: 600; color: var(--verde-escuro); }
 .modal-content { border: 0; border-radius: 0.75rem; }
 .modal-header, .modal-footer { border-color: var(--verde-claro); }
+
+.btn-perfil {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  transition: background-color 0.2s, color 0.2s;
+}
+.btn-perfil:hover,
+.btn-perfil[aria-expanded="true"] {
+  background-color: #fff;
+  color: var(--verde-escuro);
+}
+
+.dropdown-menu {
+  min-width: 12rem;
+  border: 0;
+  border-radius: 0.75rem;
+}
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--verde-claro);
+  color: var(--verde-escuro);
+}
